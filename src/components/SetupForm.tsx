@@ -5,7 +5,6 @@ import { useState } from "react";
 export default function SetupForm({ signedIn }: { signedIn: boolean }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [token, setToken] = useState("");
   const [name, setName] = useState("Our home");
   const [error, setError] = useState("");
   const [accountCreated, setAccountCreated] = useState(signedIn);
@@ -18,7 +17,7 @@ export default function SetupForm({ signedIn }: { signedIn: boolean }) {
       if (!accountReady) {
         const response = await fetch("/api/auth/sign-up/email", {
           method: "POST",
-          headers: { "Content-Type": "application/json", "x-homefind-setup": token },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name: email.split("@")[0], email, password }),
         });
         if (!response.ok) {
@@ -32,7 +31,7 @@ export default function SetupForm({ signedIn }: { signedIn: boolean }) {
       const result = await fetch("/api/bootstrap", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, name }),
+        body: JSON.stringify({ name }),
       });
       const data = await result.json();
       if (!result.ok) {
@@ -46,14 +45,13 @@ export default function SetupForm({ signedIn }: { signedIn: boolean }) {
   }
 
   return <>
-    <p className="muted">{signedIn ? "This account is signed in and ready to finish setup. Enter the one-time setup token from your server." : accountCreated ? "Account created. Enter the one-time setup token from your server to finish setup." : "Create the owner account. You’ll need the one-time setup token from your server."}</p>
+    <p className="muted">{signedIn ? "This account is ready to finish the first home setup." : accountCreated ? "Account created. Finish setup to make this the home owner." : "Create the first account. It will become the owner of this home."}</p>
     <form className="form" onSubmit={submit}>
       {!accountCreated && <>
         <div><label htmlFor="setup-email">Email</label><input className="field" id="setup-email" type="email" autoComplete="email" required value={email} onChange={event => setEmail(event.target.value)} /></div>
         <div><label htmlFor="setup-password">Password</label><input className="field" id="setup-password" type="password" autoComplete="new-password" minLength={8} required value={password} onChange={event => setPassword(event.target.value)} /></div>
       </>}
       <div><label htmlFor="home-name">Home name</label><input className="field" id="home-name" value={name} onChange={event => setName(event.target.value)} /></div>
-      <div><label htmlFor="setup-token">One-time setup token</label><input className="field" id="setup-token" type="password" autoComplete="off" required value={token} onChange={event => setToken(event.target.value)} /></div>
       {error && <p className="error" role="alert">{error}</p>}
       <button className="btn btn-wide">{accountCreated ? "Finish home setup" : "Create home"}</button>
     </form>
