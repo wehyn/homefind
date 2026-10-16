@@ -1,6 +1,6 @@
 # HomeFind product and design spec
 
-**Status:** Draft for user review
+**Status:** Approved
 **Updated:** 2026-10-16
 
 ## Goal
@@ -15,7 +15,7 @@ Help one family remember where household belongings are stored. A member can pho
 - An item requires a name, one photo, and one location. Notes are optional.
 - A location can be assigned at any depth in the tree, including a room, shelf, or container.
 - Search is the home screen. It updates as the person types and matches partial, case-insensitive item names.
-- Use a crisp monochrome minimalist aesthetic with strong contrast, clear type, and restrained decoration.
+- Use soft off-white surfaces, dark charcoal text, and a restrained terracotta accent. Keep strong contrast, clear type, and restrained decoration; leave item photos in their natural colors.
 - The app is online-first. Remote access uses HTTPS.
 
 ## Main flows
@@ -46,7 +46,7 @@ Store household membership, hierarchical locations, item names, optional notes, 
 
 The browser never connects to SQLite or the private upload directory. Every item, location, invitation, and photo request goes through the Next.js server, requires a valid account, and checks household membership. Photo responses are private and non-cacheable. Validate uploaded image content and size, generate safe filenames, and never accept a client-supplied storage path.
 
-Use a maintained authentication library rather than implementing password storage or session handling from scratch. The library and account-recovery configuration are implementation decisions to confirm before coding.
+Use a maintained authentication library rather than implementing password storage or session handling from scratch. V1 does not configure email delivery or provide self-service password resets; a forgotten password cannot be reset through the app. SMTP-backed recovery can be added later.
 
 ## Hosting and data protection
 
@@ -56,7 +56,7 @@ Back up the database and photo directory together, and verify that a backup can 
 
 ## Visual and interaction direction
 
-Use a crisp monochrome palette and a quiet layout: a clear type hierarchy, useful whitespace, simple item rows, and only the controls needed for search and capture. Keep photos and full location paths easy to scan. Keep the interface usable on narrow phone screens, by keyboard, and with a screen reader. The location row and expand control must be separate, understandable actions.
+Use soft off-white surfaces, dark charcoal text, and a restrained terracotta accent. Keep a clear type hierarchy, useful whitespace, simple item rows, and only the controls needed for search and capture. Use the accent sparingly for primary actions and location cues, and keep item photos in their natural colors. Keep photos and full location paths easy to scan. Keep the interface usable on narrow phone screens, by keyboard, and with a screen reader. The location row and expand control must be separate, understandable actions.
 
 ## Out of scope for v1
 

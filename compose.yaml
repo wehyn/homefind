@@ -1,0 +1,11 @@
+services:
+  homefind:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      HOMEFIND_DATA_DIR: /data
+    volumes:
+      - ./data:/data
+    ports:
+      - "127.0.0.1:3000:3000"

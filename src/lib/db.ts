@@ -1,0 +1,31 @@
+import "server-only";
+import Database from "better-sqlite3";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import { authSchema } from "@/lib/auth-schema";
+import fs from "node:fs";
+import path from "node:path";
+
+const dir = process.env.HOMEFIND_DATA_DIR || path.join(process.cwd(), "data");
+fs.mkdirSync(path.join(dir, "uploads"), { recursive: true, mode: 0o700 });
+const db = new Database(path.join(dir, "homefind.sqlite"));
+db.pragma("journal_mode = WAL");
+db.pragma("foreign_keys = ON");
+db.exec(`
+CREATE TABLE IF NOT EXISTS user(id TEXT PRIMARY KEY,name TEXT NOT NULL,email TEXT NOT NULL UNIQUE,email_verified INTEGER NOT NULL DEFAULT 0,image TEXT,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS session(id TEXT PRIMARY KEY,expires_at INTEGER NOT NULL,token TEXT NOT NULL UNIQUE,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,ip_address TEXT,user_agent TEXT,user_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE);
+CREATE TABLE IF NOT EXISTS account(id TEXT PRIMARY KEY,account_id TEXT NOT NULL,provider_id TEXT NOT NULL,user_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,access_token TEXT,refresh_token TEXT,id_token TEXT,access_token_expires_at INTEGER,refresh_token_expires_at INTEGER,scope TEXT,password TEXT,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,UNIQUE(provider_id,account_id));
+CREATE TABLE IF NOT EXISTS verification(id TEXT PRIMARY KEY,identifier TEXT NOT NULL,value TEXT NOT NULL,expires_at INTEGER NOT NULL,created_at INTEGER,updated_at INTEGER);
+CREATE TABLE IF NOT EXISTS household(id TEXT PRIMARY KEY, name TEXT NOT NULL);
+CREATE TRIGGER IF NOT EXISTS household_one_only BEFORE INSERT ON household WHEN EXISTS(SELECT 1 FROM household) BEGIN SELECT RAISE(ABORT,'only one household is supported'); END;
+CREATE TABLE IF NOT EXISTS home_singleton(id INTEGER PRIMARY KEY CHECK(id=1));
+INSERT OR IGNORE INTO home_singleton(id) SELECT 1 WHERE EXISTS (SELECT 1 FROM household);
+CREATE TABLE IF NOT EXISTS membership(user_id TEXT PRIMARY KEY, household_id TEXT NOT NULL REFERENCES household(id) ON DELETE CASCADE, role TEXT NOT NULL CHECK(role IN ('owner','member')));
+CREATE TABLE IF NOT EXISTS location(id TEXT PRIMARY KEY, household_id TEXT NOT NULL REFERENCES household(id) ON DELETE CASCADE, parent_id TEXT, name TEXT NOT NULL, FOREIGN KEY(parent_id, household_id) REFERENCES location(id, household_id) ON DELETE CASCADE, UNIQUE(id, household_id));
+CREATE TABLE IF NOT EXISTS item(id TEXT PRIMARY KEY, household_id TEXT NOT NULL REFERENCES household(id) ON DELETE CASCADE, location_id TEXT NOT NULL, name TEXT NOT NULL, note TEXT NOT NULL DEFAULT '', photo TEXT NOT NULL, created_by TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(location_id, household_id) REFERENCES location(id, household_id));
+CREATE INDEX IF NOT EXISTS item_name_idx ON item(household_id, name COLLATE NOCASE);
+CREATE INDEX IF NOT EXISTS item_recent_idx ON item(household_id, created_at DESC);
+CREATE TABLE IF NOT EXISTS invitation(id TEXT PRIMARY KEY, household_id TEXT NOT NULL REFERENCES household(id) ON DELETE CASCADE, token_hash TEXT NOT NULL UNIQUE, expires_at INTEGER NOT NULL, used_at INTEGER, created_at INTEGER NOT NULL);
+`);
+export const dataDir = dir;
+export default db;
+export const authDatabase = drizzle(db,{schema:authSchema});
