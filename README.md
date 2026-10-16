@@ -12,14 +12,12 @@ Self-hosted family inventory for one home. Requires Node.js 24 LTS and one app i
    ```
 
 2. Copy `.env.example` to `.env`.
-3. Set `BETTER_AUTH_URL` to the public HTTPS URL, generate a unique 32+ character `BETTER_AUTH_SECRET`, and set a long random `HOMEFIND_SETUP_TOKEN`.
+3. Set `BETTER_AUTH_URL` to the HTTPS URL people use to open HomeFind and generate a unique 32+ character `BETTER_AUTH_SECRET`.
 4. Run `docker compose up -d --build`. The app listens on `127.0.0.1:3000`; put it behind an HTTPS reverse proxy.
-5. Open `/setup` once and enter the setup token to create the household owner. Then remove `HOMEFIND_SETUP_TOKEN` from `.env` and recreate the app container so it is removed from the running environment:
-
-   ```sh
-   docker compose up -d --force-recreate homefind
-   ```
+5. Keep HomeFind private until setup is complete. Open `/setup` and create the first account; it becomes the household owner.
 6. Owners create single-use family invitations from **Family**. Each link expires after seven days.
+
+For development from another device, set `HOMEFIND_DEV_ORIGINS` in `.env` to the browser hostname or IP address (comma-separated). It only affects `next dev`.
 
 For Nginx, allow the maximum 15 MiB image plus multipart form overhead in the HTTPS server block:
 
@@ -58,6 +56,6 @@ Run a restore rehearsal before relying on a backup. Do not restore only the data
 
 ## Account and photo notes
 
-Password reset by email is not available in v1. If a member forgets their password, the owner must arrange an account recovery outside the app. New accounts can only be created through the one-time setup flow or a valid family invite. Unsupported or damaged images are rejected; supported inputs are JPEG, PNG, WebP, AVIF, and TIFF. HEIC support is not promised. Photos are limited to 15 MiB and normalized on the server.
+Password reset by email is not available in v1. If a member forgets their password, the owner must arrange an account recovery outside the app. The first account created before setup becomes the owner; later accounts require a valid family invite. Keep HomeFind behind HomeServer access controls until the owner account is created. Unsupported or damaged images are rejected; supported inputs are JPEG, PNG, WebP, AVIF, and TIFF. HEIC support is not promised. Photos are limited to 15 MiB and normalized on the server.
 
 Inventory and photo responses are private and not cached. The PWA does not provide offline access.
