@@ -32,7 +32,7 @@ export default function Login() {
         {error && <p className="error" role="alert">{error}</p>}
         <button className="btn btn-wide">Sign in</button>
       </form>
-      <p className="footer">First time here? Use your setup or family invitation link to create an account.</p>
+      <p className="footer">First account? <Link href="/setup">Set up your home</Link>. After that, ask the owner for a family invitation.</p>
     </section>
   </main>;
 }
