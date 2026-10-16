@@ -1,76 +1,82 @@
-# HomeFind design
+# HomeFind product and design spec
 
 **Status:** Draft for user review
-**Date:** 2026-10-15
+**Updated:** 2026-10-16
 
 ## Goal
 
-Help one family keep a shared record of household items so anyone can search by item name and see a photo and the item's exact storage location.
+Help one family remember where household belongings are stored. A member can photograph and name an item, assign it to a place in the home, then find it with a name search and see its photo and location.
 
 ## Product decisions
 
 - Build an installable, mobile-first web app (PWA) with Next.js.
-- Run it on one self-hosted Node.js server and use SQLite on that server's persistent local disk.
-- Keep the first screen **Search first**: a prominent name search, recent items with photos and location paths, and a clear **Add an item** action.
-- Support one household. Invited members can view, add, edit, and move its items.
-- Each item has a required name, one required photo, one saved location, and optional notes.
-- Locations form a tree such as `Garage → Shelf 2 → Blue bin`.
-- The app is online-first. Family members can access it away from home through HTTPS.
+- Self-host one Node.js app instance and keep SQLite plus private item photos on durable local storage on that server.
+- Support one household. Every household member can view, add, edit, move, and delete items. Only the owner can create invitations.
+- An item requires a name, one photo, and one location. Notes are optional.
+- A location can be assigned at any depth in the tree, including a room, shelf, or container.
+- Search is the home screen. It updates as the person types and matches partial, case-insensitive item names.
+- Use a crisp monochrome minimalist aesthetic with strong contrast, clear type, and restrained decoration.
+- The app is online-first. Remote access uses HTTPS.
 
 ## Main flows
 
+### Search
+
+The initial screen has a prominent name search, a small list of recent items, and a labeled **Add item** button. Search results and recent-item rows show the item photo, name, and full location path. They do not show who added the item. Search has clear empty-inventory and no-match states. Search is limited to item names in v1.
+
 ### Add an item
 
-1. A member taps **Add an item**.
-2. They take a photo or choose one from the phone's library.
-3. They enter the item name and select an existing location or create a location path.
-4. On successful save, the item appears in search results with its photo and full location.
+The Add screen is one compact form with the photo, name, location, and Save action. The photo is required; its control offers both **Camera** and **Photo Library**. Name and location are required. Optional notes are hidden behind **Add note**.
 
-### Find or move an item
+The location field opens an expandable location tree. Tapping a location row selects that location; a separate chevron expands or collapses its children. Any location level can be selected. A missing location can be created inside the picker, one level at a time under the current parent. The new location is selected immediately so the member can continue adding the item or create its child location.
 
-1. A member types all or part of the item name in the search field.
-2. Results show a thumbnail, item name, location path, and who added it.
-3. A member can edit the name or move the item to another saved location.
+The server validates the submitted fields and photo. The app reports success only after both the photo and item record are saved. A failure is retryable and must not leave an incomplete item visible in search.
 
-Search ignores letter case and matches partial item names. An empty inventory and a search with no matches receive clear, useful messages.
+### Item details, editing, moving, and deleting
+
+The detail screen shows the photo, item name, full location path, and optional notes. **Move** is a separate, direct action from editing. Members can edit the name and notes. Members can delete an item after confirming; deletion removes it from search and removes its stored photo.
 
 ### Join the household
 
-The first account creates the household and becomes its owner. The owner can create a single-use invitation link that expires after seven days and share it with relatives. Each member has an individual account. Members can manage items; only the owner can manage invitations.
+The first account creates the household and becomes its owner. The owner creates a single-use invitation link that expires after seven days and shares it with relatives. Each member uses an individual account. A signed-in account without household membership cannot see household data.
 
-## Data and access
+## Data, access, and privacy
 
-Store household membership, hierarchical locations, item names, optional notes, photo paths, and created/updated timestamps in SQLite. Keep photo files in a private upload directory on the same persistent disk; store only their server-generated relative paths in SQLite.
+Store household membership, hierarchical locations, item names, optional notes, photo paths, and timestamps in SQLite. Store photo files in a private upload directory on the same durable disk; SQLite stores only server-generated relative paths.
 
-The browser never connects to SQLite directly. Every item, location, invitation, and photo request goes through the Next.js server, which requires a valid account and checks household membership. Photo URLs must not expose the private upload directory. Validate uploaded image content and size, generate safe filenames, and return a retryable error when an upload or save fails. Do not report success or leave a partial item when its photo could not be saved.
+The browser never connects to SQLite or the private upload directory. Every item, location, invitation, and photo request goes through the Next.js server, requires a valid account, and checks household membership. Photo responses are private and non-cacheable. Validate uploaded image content and size, generate safe filenames, and never accept a client-supplied storage path.
 
-Use a maintained authentication library rather than implementing password storage or session handling from scratch. The specific library and sign-in method will be selected in the implementation plan after checking current Next.js and SQLite support.
+Use a maintained authentication library rather than implementing password storage or session handling from scratch. The library and account-recovery configuration are implementation decisions to confirm before coding.
 
 ## Hosting and data protection
 
-Run one Next.js server instance, directly or in Docker, behind an HTTPS reverse proxy. Mount a durable host directory for both the SQLite database and private photos. Do not put the database on a network filesystem or run multiple app instances against independent SQLite files.
+Run one Next.js server instance, directly or in Docker, behind an HTTPS reverse proxy. Mount durable local storage for both the SQLite database and private photos. Do not put SQLite on a network filesystem or run multiple app instances against separate database files.
 
-Back up the database and photo directory together. Verify that a backup can be restored before calling the app ready for family use. The app requires an internet connection; offline data entry and offline search are out of scope.
+Back up the database and photo directory together, and verify that a backup can restore both. Private household data is not cached by a service worker. Offline search and offline item entry are out of scope.
 
-## Visual direction
+## Visual and interaction direction
 
-Use the selected **Search first** direction from the prototype: warm, calm surfaces; readable item rows; a prominent search field; clear photo and location hierarchy; and one obvious add action. Keep the main flow usable on narrow phone screens and by keyboard and screen reader.
+Use a crisp monochrome palette and a quiet layout: a clear type hierarchy, useful whitespace, simple item rows, and only the controls needed for search and capture. Keep photos and full location paths easy to scan. Keep the interface usable on narrow phone screens, by keyboard, and with a screen reader. The location row and expand control must be separate, understandable actions.
 
 ## Out of scope for v1
 
 - Multiple households or properties
 - GPS-based indoor locations
-- AI photo recognition or OCR
+- AI image recognition or OCR
 - Barcode scanning
 - Offline synchronization
 - Categories, tags, reminders, or analytics
+- Search by notes or location
 
 ## Acceptance checks
 
-- A member can add a photo, name, and nested location; the item appears in search with its full path.
-- Partial and mixed-case name searches find the expected item; no-match and empty states are clear.
-- A member can update an item and move it to another location.
-- A second invited account can view and edit the same household inventory; an account outside the household cannot access its data or photos.
-- Failed uploads and failed saves show a retryable error and do not create an incomplete item.
+- A member can add a required photo, name, and location in one compact form; Camera and Photo Library are both available.
+- A member can assign an item to any existing location level or create the next location level inline; the new location is selected.
+- Partial, mixed-case item-name searches update as the person types and return the expected items.
+- Recent items and search results show a photo, name, and full location path without the added-by field.
+- Empty inventory and no-match states explain what to do next.
+- A member can edit an item's name or notes, move it with a separate action, and delete it after confirmation.
+- A second invited account can view and edit the same household inventory; an account outside the household cannot access items or private photos.
+- Failed uploads and saves show a retryable error and do not create an incomplete item.
 - Data and photos remain available after a server restart, and a tested backup can restore both.
-- The PWA can be installed and its camera/photo-picker flow works on current iOS Safari and Android Chrome over HTTPS.
+- The PWA can be installed and its camera/photo-library flow works on current iOS Safari and Android Chrome over HTTPS.
